@@ -110,8 +110,8 @@ const JobListItem = ({
     <Accordion TransitionProps={{ unmountOnExit: true }} className={className}>
       <AccordionSummary
         expandIcon={<ExpandMoreIcon />}
-        aria-controls={`panel-${name}-content`}
-        id={`panel-${name}-header`}
+        aria-controls={`panel-${job.id}-content`}
+        id={`panel-${job.id}-header`}
         IconButtonProps={{
           className: classes.button,
         }}

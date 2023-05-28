@@ -42,7 +42,7 @@ export const Router = (_props: Props) => {
   return (
     <Routes>
       <Route
-        path={`/${rootRouteRef.path}`}
+        path={`/`}
         element={<WorkflowRunsTable entity={entity} />}
       />
       <Route

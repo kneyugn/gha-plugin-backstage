@@ -138,8 +138,8 @@ export const WorkflowRunLogs = ({
     <Accordion TransitionProps={{ unmountOnExit: true }} disabled={inProgress}>
       <AccordionSummary
         expandIcon={<ExpandMoreIcon />}
-        aria-controls={`panel-${name}-content`}
-        id={`panel-${name}-header`}
+        aria-controls={`panel-${runId}-content`}
+        id={`panel-${runId}-header`}
         IconButtonProps={{
           className: classes.button,
         }}

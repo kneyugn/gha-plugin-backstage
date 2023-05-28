@@ -21,7 +21,7 @@ import {
   StatusWarning,
   StatusAborted,
   StatusError,
-} from '@backstage/core';
+} from '../../components/Status';
 import React from 'react';
 
 export const WorkflowRunStatus = ({

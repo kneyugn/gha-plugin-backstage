@@ -156,13 +156,9 @@ export const WorkflowRunsTable = ({
   entity: Entity;
   branch?: string;
 }) => {
-  const config = useApi(configApiRef);
-  const { value: projectName, loading } = useProjectName(entity);
-  // TODO: Get github hostname from metadata annotation
-  const hostname = readGitHubIntegrationConfigs(
-    config.getOptionalConfigArray('integrations.github') ?? [],
-  )[0].host;
-  const [owner, repo] = (projectName ?? '/').split('/');
+  const hostname = 'github.com'
+  const [owner, repo] = ['kneyugn', 'the-scaffolder']
+  const projectName = 'the-scaffolder-ci'
   const [
     { runs, ...tableProps },
     { retry, setPage, setPageSize },
@@ -173,7 +169,16 @@ export const WorkflowRunsTable = ({
     branch,
   });
 
-  const githubHost = hostname || 'github.com';
+  const githubHost ='github.com';
+
+  // return (<WorkflowRunsTableView
+  //     {...tableProps}
+  //     runs={runs}
+  //     loading={tableProps.loading}
+  //     retry={retry}
+  //     onChangePageSize={setPageSize}
+  //     onChangePage={setPage}
+  //   />)
 
   return !runs ? (
     <EmptyState
@@ -194,7 +199,7 @@ export const WorkflowRunsTable = ({
     <WorkflowRunsTableView
       {...tableProps}
       runs={runs}
-      loading={loading || tableProps.loading}
+      loading={tableProps.loading}
       retry={retry}
       onChangePageSize={setPageSize}
       onChangePage={setPage}

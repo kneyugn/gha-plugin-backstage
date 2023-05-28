@@ -14,31 +14,31 @@
  * limitations under the License.
  */
 
-import { ConfigApi, OAuthApi } from '@backstage/core';
-import { readGitHubIntegrationConfigs } from '@backstage/integration';
+// import { ConfigApi, OAuthApi } from '@backstage/core';
+// import { readGitHubIntegrationConfigs } from '@backstage/integration';
 import { GithubActionsApi } from './GithubActionsApi';
 import { Octokit, RestEndpointMethodTypes } from '@octokit/rest';
 
 export class GithubActionsClient implements GithubActionsApi {
-  private readonly configApi: ConfigApi;
-  private readonly githubAuthApi: OAuthApi;
+  // private readonly configApi: ConfigApi;
+  // private readonly githubAuthApi: OAuthApi;
 
-  constructor(options: { configApi: ConfigApi; githubAuthApi: OAuthApi }) {
-    this.configApi = options.configApi;
-    this.githubAuthApi = options.githubAuthApi;
-  }
+  // constructor(options: { configApi: ConfigApi; githubAuthApi: OAuthApi }) {
+  //   this.configApi = options.configApi;
+  //   this.githubAuthApi = options.githubAuthApi;
+  // }
 
   private async getOctokit(hostname?: string): Promise<Octokit> {
     // TODO: Get access token for the specified hostname
-    const token = await this.githubAuthApi.getAccessToken(['repo']);
-    const configs = readGitHubIntegrationConfigs(
-      this.configApi.getOptionalConfigArray('integrations.github') ?? [],
-    );
-    const githubIntegrationConfig = configs.find(
-      v => v.host === hostname ?? 'github.com',
-    );
-    const baseUrl = githubIntegrationConfig?.apiBaseUrl;
-    return new Octokit({ auth: token, baseUrl });
+    // const token = await this.githubAuthApi.getAccessToken(['repo']);
+    // const configs = readGitHubIntegrationConfigs(
+    //   this.configApi.getOptionalConfigArray('integrations.github') ?? [],
+    // );
+    // const githubIntegrationConfig = configs.find(
+    //   v => v.host === hostname ?? 'github.com',
+    // );
+    // const baseUrl = githubIntegrationConfig?.apiBaseUrl;
+    return new Octokit({ auth: '', baseUrl: 'https://api.github.com' });
   }
 
   async reRunWorkflow({

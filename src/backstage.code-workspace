@@ -1,0 +1,14 @@
+{
+  "folders": [
+	{
+		"path": "../../../backstage"
+	},
+	{
+		"path": "../../../../backstage/backstage-poc"
+	},
+	{
+		"path": ".."
+	}
+],
+  "settings": {}
+}

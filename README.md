@@ -1,3 +1,8 @@
+POC to run the Roadie's Github Actions Plugin or any Backstage plugin as a standalone app
+
+![Screenshot 2023-05-28 at 11 41 33 PM](https://github.com/kneyugn/gha-plugin-backstage/assets/21285877/31e3486d-1977-4864-83ab-7197e4b75d9a)
+
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).

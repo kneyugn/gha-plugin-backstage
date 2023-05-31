@@ -25,10 +25,10 @@ function App() {
 
   // const githubApi = useApi(githubActionsApiRef);
   // const apis = ApiRegistry.with(githubActionsApiRef, githubApi);
-  
+
   return (
     <BrowserRouter><WorkflowRunsTable entity={entity} /></BrowserRouter>
-    
+
     // <div>hello world</div>
   );
 }

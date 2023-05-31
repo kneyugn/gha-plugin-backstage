@@ -67,14 +67,21 @@ const theme = createMuiTheme({
   defaultPageTheme: 'home'
 } as any)
 
-ReactDOM.render(
-  <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <App />
-    </ThemeProvider>
-  </React.StrictMode>,
-  document.getElementById('root')
-);
+
+
+class Mfe4Element extends HTMLElement {
+  connectedCallback() {
+    ReactDOM.render(
+      <ThemeProvider theme={theme}>
+        <App />
+      </ThemeProvider>,
+      this
+    );
+  }
+}
+
+customElements.define("gha-react-element", Mfe4Element)
+
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))

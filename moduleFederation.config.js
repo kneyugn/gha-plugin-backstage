@@ -1,8 +1,10 @@
+const { dependencies } = require('./package.json');
+
 module.exports = {
-  name: 'remote',
+  name: 'gha',
   filename: 'remoteEntry.js',
   exposes: {
-    './gha-plugin': './src/App.tsx',
+    './gha': './src/App.tsx',
   },
   remotes: {},
 };

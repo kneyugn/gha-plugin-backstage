@@ -53,10 +53,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "start-mfe": "mf-cra start",
-    "build-mfe": "mf-cra build",
-    "start-wp-mfe": "webpack serve --mode=development --devtool=source-map",
-    "build-wp-mfe": "webpack --mode=production"
+    "start:mfe": "react-app-rewired start",
+    "build:mfe": "react-app-rewired build"
   },
   "eslintConfig": {
     "extends": [

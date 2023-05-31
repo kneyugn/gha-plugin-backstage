@@ -80,7 +80,7 @@ class Mfe4Element extends HTMLElement {
   }
 }
 
-customElements.define("gha-react-element", Mfe4Element)
+customElements.get('gha-react-element') || customElements.define("gha-react-element", Mfe4Element)
 
 
 // If you want to start measuring performance in your app, pass a function

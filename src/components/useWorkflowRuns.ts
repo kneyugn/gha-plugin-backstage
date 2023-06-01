@@ -17,7 +17,6 @@ import { useState } from 'react';
 import { useAsyncRetry } from 'react-use';
 import { githubActionsApiRef } from '../api/GithubActionsApi';
 import { useApi, errorApiRef } from '@backstage/core';
-import { GithubActionsClient } from '../api';
 
 export type WorkflowRun = {
   workflowName: string;
@@ -50,12 +49,9 @@ export function useWorkflowRuns({
   branch?: string;
   initialPageSize?: number;
 }) {
-  const api = new GithubActionsClient()
+  const api = useApi(githubActionsApiRef);
 
-  const errorApi = {
-    post: (arg) => {},
-    errors: (arg) => {}
-  }
+  const errorApi = useApi(errorApiRef);
 
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);

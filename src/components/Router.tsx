@@ -32,22 +32,7 @@ type Props = {
 };
 
 export const Router = (_props: Props) => {
-  const entity: Entity = {
-  apiVersion: "backstage.io/v1alpha1",
-  kind: "Component",
-  metadata: {
-    name: "the-scaffolder-ci-cd",
-    description: "Component with GitHub actions enabled.",
-    annotations: {
-      'github.com/project-slug': "RoadieHQ/sample-service"
-    }
-  },
-  spec: {
-    type: "service",
-    lifecycle: "production",
-    owner: "engineering-team"
-  }
-}
+  const { entity } = useEntity();
 
   if (!isGithubActionsAvailable(entity)) {
     return (
@@ -57,7 +42,7 @@ export const Router = (_props: Props) => {
   return (
     <Routes>
       <Route
-        path={`/`}
+        path={`/${rootRouteRef.path}`}
         element={<WorkflowRunsTable entity={entity} />}
       />
       <Route

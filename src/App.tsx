@@ -1,9 +1,10 @@
-// import { Entity } from '@backstage/catalog-model';
-// import { ApiProvider, ApiRegistry, useApi } from '@backstage/core';
-// import { githubActionsApiRef } from './api';
 import { Entity } from '@backstage/catalog-model';
+import { ApiProvider, ApiRegistry, ConfigApi, configApiRef, ConfigReader, errorApiRef, OAuthApi } from '@backstage/core';
+import { EntityProvider } from '@backstage/plugin-catalog-react';
 import { BrowserRouter } from 'react-router-dom';
-import { WorkflowRunsTable } from './components/WorkflowRunsTable';
+import { githubActionsApiRef, GithubActionsClient } from './api';
+import { Router } from './components/Router';
+// import { Router } from '@backstage/plugin-github-actions'
 
 function App() {
   const entity: Entity = {
@@ -13,7 +14,7 @@ function App() {
       name: "the-scaffolder-ci-cd",
       description: "Component with GitHub actions enabled.",
       annotations: {
-        'github.com/project-slug': "RoadieHQ/sample-service"
+        'github.com/project-slug': "kneyugn/the-scaffolder"
       }
     },
     spec: {
@@ -23,13 +24,37 @@ function App() {
     }
   } as Entity
 
-  // const githubApi = useApi(githubActionsApiRef);
-  // const apis = ApiRegistry.with(githubActionsApiRef, githubApi);
+  const configApi: ConfigApi = new ConfigReader({
+    'integrations.github': [
+      {
+        host: 'github.com'
+      }
+    ],
+  });
+
+  const errorApi = {
+    post: () => console.log('post'),
+    error$: () => {}
+  }
+
+  const oauthApi: OAuthApi = {
+    getAccessToken: () => Promise.resolve('')
+  }
+
+  const options: {configApi: ConfigApi, githubAuthApi: OAuthApi} = {
+    configApi: configApi,
+    githubAuthApi: oauthApi
+  }
 
   return (
-    <BrowserRouter><WorkflowRunsTable entity={entity} /></BrowserRouter>
-
-    // <div>hello world</div>
+    <BrowserRouter>
+      <ApiProvider apis={ApiRegistry.from([[githubActionsApiRef, new GithubActionsClient(options)], 
+        [configApiRef, configApi], [errorApiRef, errorApi]])}>
+        <EntityProvider entity={entity}>
+          <Router></Router>
+        </EntityProvider>
+      </ApiProvider>
+    </BrowserRouter>
   );
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Spotify AB
+ * Copyright 2020 The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import React from 'react';
 import {
   StatusPending,
   StatusRunning,
@@ -21,15 +22,14 @@ import {
   StatusWarning,
   StatusAborted,
   StatusError,
-} from '@backstage/core';
-import React from 'react';
+} from '@backstage/core-components';
 
 export const WorkflowRunStatus = ({
   status,
   conclusion,
 }: {
-  status: string | undefined;
-  conclusion: string | undefined;
+  status?: string;
+  conclusion?: string;
 }) => {
   if (status === undefined) return null;
   switch (status.toLocaleLowerCase('en-US')) {

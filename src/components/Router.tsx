@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Spotify AB
+ * Copyright 2020 The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,25 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import React from 'react';
 import { Entity } from '@backstage/catalog-model';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { Routes, Route } from 'react-router';
-import { rootRouteRef, buildRouteRef } from '../routes';
+import { Routes, Route } from 'react-router-dom';
+import { buildRouteRef } from '../routes';
 import { WorkflowRunDetails } from './WorkflowRunDetails';
 import { WorkflowRunsTable } from './WorkflowRunsTable';
-import { GITHUB_ACTIONS_ANNOTATION } from './useProjectName';
-import { MissingAnnotationEmptyState } from '@backstage/core';
+import { GITHUB_ACTIONS_ANNOTATION } from './getProjectNameFromEntity';
+import { MissingAnnotationEmptyState } from '@backstage/core-components';
 
+/** @public */
 export const isGithubActionsAvailable = (entity: Entity) =>
   Boolean(entity.metadata.annotations?.[GITHUB_ACTIONS_ANNOTATION]);
 
-type Props = {
-  /** @deprecated The entity is now grabbed from context instead */
-  entity?: Entity;
-};
-
-export const Router = (_props: Props) => {
+/** @public */
+export const Router = () => {
   const { entity } = useEntity();
 
   if (!isGithubActionsAvailable(entity)) {
@@ -41,12 +39,9 @@ export const Router = (_props: Props) => {
   }
   return (
     <Routes>
+      <Route path="/" element={<WorkflowRunsTable entity={entity} />} />
       <Route
-        path={`/${rootRouteRef.path}`}
-        element={<WorkflowRunsTable entity={entity} />}
-      />
-      <Route
-        path={`/${buildRouteRef.path}`}
+        path={`${buildRouteRef.path}`}
         element={<WorkflowRunDetails entity={entity} />}
       />
       )

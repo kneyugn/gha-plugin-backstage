@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Spotify AB
+ * Copyright 2020 The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,44 +14,51 @@
  * limitations under the License.
  */
 
-import { ConfigApi, OAuthApi } from '@backstage/core';
-import { readGitHubIntegrationConfigs } from '@backstage/integration';
+import { readGithubIntegrationConfigs } from '@backstage/integration';
+import { ScmAuthApi } from '@backstage/integration-react';
 import { GithubActionsApi } from './GithubActionsApi';
 import { Octokit, RestEndpointMethodTypes } from '@octokit/rest';
+import { ConfigApi } from '@backstage/core-plugin-api';
 
+/**
+ * A client for fetching information about GitHub actions.
+ *
+ * @public
+ */
 export class GithubActionsClient implements GithubActionsApi {
   private readonly configApi: ConfigApi;
-  private readonly githubAuthApi: OAuthApi;
+  private readonly scmAuthApi: ScmAuthApi;
 
-  constructor(options: { configApi: ConfigApi; githubAuthApi: OAuthApi }) {
+  constructor(options: { configApi: ConfigApi; scmAuthApi: ScmAuthApi }) {
     this.configApi = options.configApi;
-    this.githubAuthApi = options.githubAuthApi;
+    this.scmAuthApi = options.scmAuthApi;
   }
 
-  private async getOctokit(hostname?: string): Promise<Octokit> {
-    // TODO: Get access token for the specified hostname
-    const token = await this.githubAuthApi.getAccessToken(['repo']);
-    const configs = readGitHubIntegrationConfigs(
+  private async getOctokit(hostname: string = 'github.com'): Promise<Octokit> {
+    const { token } = await this.scmAuthApi.getCredentials({
+      url: `https://${hostname}/`,
+      additionalScope: {
+        customScopes: {
+          github: ['repo'],
+        },
+      },
+    });
+    const configs = readGithubIntegrationConfigs(
       this.configApi.getOptionalConfigArray('integrations.github') ?? [],
     );
-    const githubIntegrationConfig = configs.find(
-      v => v.host === hostname ?? 'github.com',
-    );
+    const githubIntegrationConfig = configs.find(v => v.host === hostname);
     const baseUrl = githubIntegrationConfig?.apiBaseUrl;
     return new Octokit({ auth: token, baseUrl });
   }
 
-  async reRunWorkflow({
-    hostname,
-    owner,
-    repo,
-    runId,
-  }: {
+  async reRunWorkflow(options: {
     hostname?: string;
     owner: string;
     repo: string;
     runId: number;
   }): Promise<any> {
+    const { hostname, owner, repo, runId } = options;
+
     const octokit = await this.getOctokit(hostname);
     return octokit.actions.reRunWorkflow({
       owner,
@@ -59,14 +66,8 @@ export class GithubActionsClient implements GithubActionsApi {
       run_id: runId,
     });
   }
-  async listWorkflowRuns({
-    hostname,
-    owner,
-    repo,
-    pageSize = 100,
-    page = 0,
-    branch,
-  }: {
+
+  async listWorkflowRuns(options: {
     hostname?: string;
     owner: string;
     repo: string;
@@ -76,6 +77,8 @@ export class GithubActionsClient implements GithubActionsApi {
   }): Promise<
     RestEndpointMethodTypes['actions']['listWorkflowRuns']['response']['data']
   > {
+    const { hostname, owner, repo, pageSize = 100, page = 0, branch } = options;
+
     const octokit = await this.getOctokit(hostname);
     const workflowRuns = await octokit.actions.listWorkflowRunsForRepo({
       owner,
@@ -84,14 +87,11 @@ export class GithubActionsClient implements GithubActionsApi {
       page,
       ...(branch ? { branch } : {}),
     });
+
     return workflowRuns.data;
   }
-  async getWorkflow({
-    hostname,
-    owner,
-    repo,
-    id,
-  }: {
+
+  async getWorkflow(options: {
     hostname?: string;
     owner: string;
     repo: string;
@@ -99,20 +99,19 @@ export class GithubActionsClient implements GithubActionsApi {
   }): Promise<
     RestEndpointMethodTypes['actions']['getWorkflow']['response']['data']
   > {
+    const { hostname, owner, repo, id } = options;
+
     const octokit = await this.getOctokit(hostname);
     const workflow = await octokit.actions.getWorkflow({
       owner,
       repo,
       workflow_id: id,
     });
+
     return workflow.data;
   }
-  async getWorkflowRun({
-    hostname,
-    owner,
-    repo,
-    id,
-  }: {
+
+  async getWorkflowRun(options: {
     hostname?: string;
     owner: string;
     repo: string;
@@ -120,20 +119,43 @@ export class GithubActionsClient implements GithubActionsApi {
   }): Promise<
     RestEndpointMethodTypes['actions']['getWorkflowRun']['response']['data']
   > {
+    const { hostname, owner, repo, id } = options;
+
     const octokit = await this.getOctokit(hostname);
     const run = await octokit.actions.getWorkflowRun({
       owner,
       repo,
       run_id: id,
     });
+
     return run.data;
   }
-  async downloadJobLogsForWorkflowRun({
-    hostname,
-    owner,
-    repo,
-    runId,
-  }: {
+
+  async listJobsForWorkflowRun(options: {
+    hostname?: string;
+    owner: string;
+    repo: string;
+    id: number;
+    pageSize?: number;
+    page?: number;
+  }): Promise<
+    RestEndpointMethodTypes['actions']['listJobsForWorkflowRun']['response']['data']
+  > {
+    const { hostname, owner, repo, id, pageSize = 100, page = 0 } = options;
+
+    const octokit = await this.getOctokit(hostname);
+    const jobs = await octokit.actions.listJobsForWorkflowRun({
+      owner,
+      repo,
+      run_id: id,
+      per_page: pageSize,
+      page,
+    });
+
+    return jobs.data;
+  }
+
+  async downloadJobLogsForWorkflowRun(options: {
     hostname?: string;
     owner: string;
     repo: string;
@@ -141,12 +163,15 @@ export class GithubActionsClient implements GithubActionsApi {
   }): Promise<
     RestEndpointMethodTypes['actions']['downloadJobLogsForWorkflowRun']['response']['data']
   > {
+    const { hostname, owner, repo, runId } = options;
+
     const octokit = await this.getOctokit(hostname);
     const workflow = await octokit.actions.downloadJobLogsForWorkflowRun({
       owner,
       repo,
       job_id: runId,
     });
+
     return workflow.data;
   }
 }

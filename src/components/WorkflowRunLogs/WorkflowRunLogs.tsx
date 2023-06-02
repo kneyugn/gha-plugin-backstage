@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Spotify AB
+ * Copyright 2020 The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
+import { Entity } from '@backstage/catalog-model';
+import { LogViewer } from '@backstage/core-components';
 import {
   Accordion,
   AccordionSummary,
   CircularProgress,
   Fade,
-  LinearProgress,
   makeStyles,
   Modal,
   Theme,
@@ -27,20 +28,14 @@ import {
   Typography,
   Zoom,
 } from '@material-ui/core';
-
-import React, { Suspense } from 'react';
-import { useDownloadWorkflowRunLogs } from './useDownloadWorkflowRunLogs';
-import { useProjectName } from '../useProjectName';
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import DescriptionIcon from '@material-ui/icons/Description';
-import { Entity } from '@backstage/catalog-model';
-import { configApiRef, useApi } from '@backstage/core';
-import { readGitHubIntegrationConfigs } from '@backstage/integration';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import React from 'react';
+import { getProjectNameFromEntity } from '../getProjectNameFromEntity';
+import { useDownloadWorkflowRunLogs } from './useDownloadWorkflowRunLogs';
+import { getHostnameFromEntity } from '../getHostnameFromEntity';
 
-const LazyLog = React.lazy(() => import('react-lazylog/build/LazyLog'));
-const LinePart = React.lazy(() => import('react-lazylog/build/LinePart'));
-
-const useStyles = makeStyles<Theme>(() => ({
+const useStyles = makeStyles<Theme>(theme => ({
   button: {
     order: -1,
     marginRight: 0,
@@ -54,48 +49,18 @@ const useStyles = makeStyles<Theme>(() => ({
     justifyContent: 'center',
     margin: 'auto',
   },
-  normalLog: {
+  normalLogContainer: {
     height: '75vh',
     width: '100%',
   },
-  modalLog: {
+  modalLogContainer: {
     height: '100%',
     width: '100%',
   },
+  log: {
+    background: theme.palette.background.default,
+  },
 }));
-
-const DisplayLog = ({
-  jobLogs,
-  className,
-}: {
-  jobLogs: any;
-  className: string;
-}) => {
-  return (
-    <Suspense fallback={<LinearProgress />}>
-      <div className={className}>
-        <LazyLog
-          text={jobLogs ?? 'No Values Found'}
-          extraLines={1}
-          caseInsensitive
-          enableSearch
-          formatPart={line => {
-            if (
-              line.toLocaleLowerCase().includes('error') ||
-              line.toLocaleLowerCase().includes('failed') ||
-              line.toLocaleLowerCase().includes('failure')
-            ) {
-              return (
-                <LinePart style={{ color: 'red' }} part={{ text: line }} />
-              );
-            }
-            return line;
-          }}
-        />
-      </div>
-    </Suspense>
-  );
-};
 
 /**
  * A component for Run Logs visualization.
@@ -106,24 +71,21 @@ export const WorkflowRunLogs = ({
   inProgress,
 }: {
   entity: Entity;
-  runId: string;
+  runId: number;
   inProgress: boolean;
 }) => {
-  const config = useApi(configApiRef);
   const classes = useStyles();
-  const projectName = useProjectName(entity);
+  const projectName = getProjectNameFromEntity(entity);
 
-  // TODO: Get github hostname from metadata annotation
-  const hostname = readGitHubIntegrationConfigs(
-    config.getOptionalConfigArray('integrations.github') ?? [],
-  )[0].host;
-  const [owner, repo] = projectName.value ? projectName.value.split('/') : [];
+  const hostname = getHostnameFromEntity(entity);
+  const [owner, repo] = (projectName && projectName.split('/')) || [];
   const jobLogs = useDownloadWorkflowRunLogs({
     hostname,
     owner,
     repo,
     id: runId,
   });
+  const logText = jobLogs.value ? String(jobLogs.value) : undefined;
   const [open, setOpen] = React.useState(false);
 
   const handleOpen = () => {
@@ -138,8 +100,6 @@ export const WorkflowRunLogs = ({
     <Accordion TransitionProps={{ unmountOnExit: true }} disabled={inProgress}>
       <AccordionSummary
         expandIcon={<ExpandMoreIcon />}
-        aria-controls={`panel-${runId}-content`}
-        id={`panel-${runId}-header`}
         IconButtonProps={{
           className: classes.button,
         }}
@@ -163,18 +123,19 @@ export const WorkflowRunLogs = ({
           onClose={handleClose}
         >
           <Fade in={open}>
-            <DisplayLog
-              jobLogs={jobLogs.value || undefined}
-              className={classes.modalLog}
-            />
+            <div className={classes.modalLogContainer}>
+              <LogViewer
+                text={logText ?? 'No Values Found'}
+                classes={{ root: classes.log }}
+              />
+            </div>
           </Fade>
         </Modal>
       </AccordionSummary>
-      {jobLogs.value && (
-        <DisplayLog
-          jobLogs={jobLogs.value || undefined}
-          className={classes.normalLog}
-        />
+      {logText && (
+        <div className={classes.normalLogContainer}>
+          <LogViewer text={logText} classes={{ root: classes.log }} />
+        </div>
       )}
     </Accordion>
   );

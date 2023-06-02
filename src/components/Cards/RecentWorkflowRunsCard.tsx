@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Spotify AB
+ * Copyright 2020 The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,52 +13,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Entity } from '@backstage/catalog-model';
+import { useEntity } from '@backstage/plugin-catalog-react';
+import React, { useEffect } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
+import { GITHUB_ACTIONS_ANNOTATION } from '../getProjectNameFromEntity';
+import { useWorkflowRuns, WorkflowRun } from '../useWorkflowRuns';
+import { WorkflowRunStatus } from '../WorkflowRunStatus';
+import { Typography } from '@material-ui/core';
+
+import { errorApiRef, useApi, useRouteRef } from '@backstage/core-plugin-api';
 import {
-  configApiRef,
-  errorApiRef,
+  ErrorPanel,
   InfoCard,
   InfoCardVariants,
   Link,
   Table,
-  useApi,
-} from '@backstage/core';
-import { readGitHubIntegrationConfigs } from '@backstage/integration';
-import { useEntity } from '@backstage/plugin-catalog-react';
-import React, { useEffect } from 'react';
-import { generatePath, Link as RouterLink } from 'react-router-dom';
-import { GITHUB_ACTIONS_ANNOTATION } from '../useProjectName';
-import { useWorkflowRuns } from '../useWorkflowRuns';
-import { WorkflowRunStatus } from '../WorkflowRunStatus';
-import { Typography } from '@material-ui/core';
+} from '@backstage/core-components';
+import { buildRouteRef } from '../../routes';
+import { getHostnameFromEntity } from '../getHostnameFromEntity';
 
 const firstLine = (message: string): string => message.split('\n')[0];
 
-export type Props = {
-  /** @deprecated The entity is now grabbed from context instead */
-  entity?: Entity;
+/** @public */
+export const RecentWorkflowRunsCard = (props: {
   branch?: string;
   dense?: boolean;
   limit?: number;
   variant?: InfoCardVariants;
-};
+}) => {
+  const { branch, dense = false, limit = 5, variant } = props;
 
-export const RecentWorkflowRunsCard = ({
-  branch,
-  dense = false,
-  limit = 5,
-  variant,
-}: Props) => {
   const { entity } = useEntity();
-  const config = useApi(configApiRef);
   const errorApi = useApi(errorApiRef);
-  // TODO: Get github hostname from metadata annotation
-  const hostname = readGitHubIntegrationConfigs(
-    config.getOptionalConfigArray('integrations.github') ?? [],
-  )[0].host;
+
+  const hostname = getHostnameFromEntity(entity);
+
   const [owner, repo] = (
     entity?.metadata.annotations?.[GITHUB_ACTIONS_ANNOTATION] ?? '/'
   ).split('/');
+
   const [{ runs = [], loading, error }] = useWorkflowRuns({
     hostname,
     owner,
@@ -66,6 +59,7 @@ export const RecentWorkflowRunsCard = ({
     branch,
     initialPageSize: limit,
   });
+
   useEffect(() => {
     if (error) {
       errorApi.post(error);
@@ -73,6 +67,11 @@ export const RecentWorkflowRunsCard = ({
   }, [error, errorApi]);
 
   const githubHost = hostname || 'github.com';
+  const routeLink = useRouteRef(buildRouteRef);
+
+  if (error) {
+    return <ErrorPanel title={error.message} error={error} />;
+  }
 
   return (
     <InfoCard
@@ -94,7 +93,7 @@ export const RecentWorkflowRunsCard = ({
           </Typography>
         </div>
       ) : (
-        <Table
+        <Table<WorkflowRun>
           isLoading={loading}
           options={{
             search: false,
@@ -107,11 +106,8 @@ export const RecentWorkflowRunsCard = ({
               title: 'Commit Message',
               field: 'message',
               render: data => (
-                <Link
-                  component={RouterLink}
-                  to={generatePath('./ci-cd/:id', { id: data.id! })}
-                >
-                  {firstLine(data.message)}
+                <Link component={RouterLink} to={routeLink({ id: data.id! })}>
+                  {firstLine(data.message ?? '')}
                 </Link>
               ),
             },

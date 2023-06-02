@@ -14,38 +14,19 @@
  * limitations under the License.
  */
 
-/** @public */
-export type Step = {
-  name: string;
-  status: string;
-  conclusion?: string;
-  number: number; // starts from 1
-  started_at?: string;
-  completed_at?: string;
-};
+import {
+  ANNOTATION_LOCATION,
+  ANNOTATION_SOURCE_LOCATION,
+  Entity,
+} from '@backstage/catalog-model';
+import gitUrlParse from 'git-url-parse';
 
-/** @public */
-export type Job = {
-  html_url?: string;
-  status: string;
-  conclusion?: string;
-  started_at: string;
-  completed_at?: string;
-  id: number;
-  name: string;
-  steps?: Step[];
-};
+export const getHostnameFromEntity = (entity: Entity) => {
+  const location =
+    entity?.metadata.annotations?.[ANNOTATION_SOURCE_LOCATION] ??
+    entity?.metadata.annotations?.[ANNOTATION_LOCATION];
 
-/** @public */
-export type Jobs = {
-  total_count: number;
-  jobs: Job[];
+  return location?.startsWith('url:')
+    ? gitUrlParse(location.slice(4)).resource
+    : undefined;
 };
-
-/** @public */
-export enum BuildStatus {
-  'success',
-  'failure',
-  'pending',
-  'running',
-}

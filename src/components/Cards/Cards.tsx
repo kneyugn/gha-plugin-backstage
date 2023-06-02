@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Spotify AB
+ * Copyright 2020 The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,30 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Entity } from '@backstage/catalog-model';
-import {
-  configApiRef,
-  errorApiRef,
-  InfoCard,
-  InfoCardVariants,
-  StructuredMetadataTable,
-  useApi,
-} from '@backstage/core';
-import { readGitHubIntegrationConfigs } from '@backstage/integration';
+
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   LinearProgress,
-  Link,
   makeStyles,
   Theme,
   Typography,
 } from '@material-ui/core';
 import ExternalLinkIcon from '@material-ui/icons/Launch';
 import React, { useEffect } from 'react';
-import { GITHUB_ACTIONS_ANNOTATION } from '../useProjectName';
+import { GITHUB_ACTIONS_ANNOTATION } from '../getProjectNameFromEntity';
 import { useWorkflowRuns, WorkflowRun } from '../useWorkflowRuns';
 import { WorkflowRunsTable } from '../WorkflowRunsTable';
 import { WorkflowRunStatus } from '../WorkflowRunStatus';
+import { errorApiRef, useApi } from '@backstage/core-plugin-api';
+import {
+  InfoCard,
+  InfoCardVariants,
+  Link,
+  StructuredMetadataTable,
+} from '@backstage/core-components';
+import { getHostnameFromEntity } from '../getHostnameFromEntity';
 
 const useStyles = makeStyles<Theme>({
   externalLinkIcon: {
@@ -45,20 +43,18 @@ const useStyles = makeStyles<Theme>({
   },
 });
 
-const WidgetContent = ({
-  error,
-  loading,
-  lastRun,
-  branch,
-}: {
+const WidgetContent = (props: {
   error?: Error;
   loading?: boolean;
   lastRun: WorkflowRun;
   branch: string;
 }) => {
+  const { error, loading, lastRun, branch } = props;
   const classes = useStyles();
+
   if (error) return <Typography>Couldn't fetch latest {branch} run</Typography>;
   if (loading) return <LinearProgress />;
+
   return (
     <StructuredMetadataTable
       metadata={{
@@ -72,7 +68,7 @@ const WidgetContent = ({
         ),
         message: lastRun.message,
         url: (
-          <Link href={lastRun.githubUrl} target="_blank">
+          <Link to={lastRun.githubUrl ?? ''}>
             See more on GitHub{' '}
             <ExternalLinkIcon className={classes.externalLinkIcon} />
           </Link>
@@ -82,18 +78,15 @@ const WidgetContent = ({
   );
 };
 
-export const LatestWorkflowRunCard = ({
-  branch = 'master',
-  // Display the card full height suitable for
-  variant,
-}: Props) => {
+/** @public */
+export const LatestWorkflowRunCard = (props: {
+  branch: string;
+  variant?: InfoCardVariants;
+}) => {
+  const { branch = 'master', variant } = props;
   const { entity } = useEntity();
-  const config = useApi(configApiRef);
   const errorApi = useApi(errorApiRef);
-  // TODO: Get github hostname from metadata annotation
-  const hostname = readGitHubIntegrationConfigs(
-    config.getOptionalConfigArray('integrations.github') ?? [],
-  )[0].host;
+  const hostname = getHostnameFromEntity(entity);
   const [owner, repo] = (
     entity?.metadata.annotations?.[GITHUB_ACTIONS_ANNOTATION] ?? '/'
   ).split('/');
@@ -122,17 +115,12 @@ export const LatestWorkflowRunCard = ({
   );
 };
 
-type Props = {
-  /** @deprecated The entity is now grabbed from context instead */
-  entity?: Entity;
+/** @public */
+export const LatestWorkflowsForBranchCard = (props: {
   branch: string;
   variant?: InfoCardVariants;
-};
-
-export const LatestWorkflowsForBranchCard = ({
-  branch = 'master',
-  variant,
-}: Props) => {
+}) => {
+  const { branch = 'master', variant } = props;
   const { entity } = useEntity();
 
   return (

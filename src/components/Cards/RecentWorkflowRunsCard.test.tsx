@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Spotify AB
+ * Copyright 2020 The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,23 +14,20 @@
  * limitations under the License.
  */
 
-import {
-  ApiProvider,
-  ApiRegistry,
-  errorApiRef,
-  configApiRef,
-  ConfigApi,
-  ConfigReader,
-} from '@backstage/core';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
-import { lightTheme } from '@backstage/theme';
-import { ThemeProvider } from '@material-ui/core';
-import { render } from '@testing-library/react';
 import React from 'react';
-import { MemoryRouter } from 'react-router';
 import { useWorkflowRuns } from '../useWorkflowRuns';
-import type { Props as RecentWorkflowRunsCardProps } from './RecentWorkflowRunsCard';
 import { RecentWorkflowRunsCard } from './RecentWorkflowRunsCard';
+
+import { ConfigReader } from '@backstage/core-app-api';
+import {
+  ConfigApi,
+  configApiRef,
+  errorApiRef,
+} from '@backstage/core-plugin-api';
+import { TestApiProvider, wrapInTestApp } from '@backstage/test-utils';
+import { rootRouteRef } from '../../routes';
+import { render } from '@testing-library/react';
 
 jest.mock('../useWorkflowRuns', () => ({
   useWorkflowRuns: jest.fn(),
@@ -51,6 +48,8 @@ describe('<RecentWorkflowRunsCard />', () => {
       name: 'software',
       annotations: {
         'github.com/project-slug': 'theorg/the-service',
+        'backstage.io/source-location':
+          'url:https://ghes.acme.co/theorg/the-service/tree/main/',
       },
     },
     spec: {
@@ -75,22 +74,25 @@ describe('<RecentWorkflowRunsCard />', () => {
     jest.resetAllMocks();
   });
 
-  const renderSubject = (props: RecentWorkflowRunsCardProps = { entity }) =>
+  const renderSubject = (props: any = {}) =>
     render(
-      <ThemeProvider theme={lightTheme}>
-        <MemoryRouter>
-          <ApiProvider
-            apis={ApiRegistry.with(errorApiRef, mockErrorApi).with(
-              configApiRef,
-              configApi,
-            )}
-          >
-            <EntityProvider entity={props.entity!}>
-              <RecentWorkflowRunsCard {...props} />
-            </EntityProvider>
-          </ApiProvider>
-        </MemoryRouter>
-      </ThemeProvider>,
+      wrapInTestApp(
+        <TestApiProvider
+          apis={[
+            [errorApiRef, mockErrorApi],
+            [configApiRef, configApi],
+          ]}
+        >
+          <EntityProvider entity={entity}>
+            <RecentWorkflowRunsCard {...props} />
+          </EntityProvider>
+        </TestApiProvider>,
+        {
+          mountedRoutes: {
+            '/ci-cd': rootRouteRef,
+          },
+        },
+      ),
     );
 
   it('renders a table with a row for each workflow', async () => {
@@ -113,22 +115,26 @@ describe('<RecentWorkflowRunsCard />', () => {
 
   it('requests only the required number of workflow runs', async () => {
     const limit = 3;
-    renderSubject({ entity, limit });
+    renderSubject({ limit });
     expect(useWorkflowRuns).toHaveBeenCalledWith(
       expect.objectContaining({ initialPageSize: limit }),
     );
   });
 
-  it('uses the github repo and owner from the entity annotation', async () => {
+  it('uses the github hostname, repo and owner from the entity annotations', async () => {
     renderSubject();
     expect(useWorkflowRuns).toHaveBeenCalledWith(
-      expect.objectContaining({ owner: 'theorg', repo: 'the-service' }),
+      expect.objectContaining({
+        hostname: 'ghes.acme.co',
+        owner: 'theorg',
+        repo: 'the-service',
+      }),
     );
   });
 
   it('filters workflows by branch if one is specified', async () => {
     const branch = 'master';
-    renderSubject({ entity, branch });
+    renderSubject({ branch });
     expect(useWorkflowRuns).toHaveBeenCalledWith(
       expect.objectContaining({ branch }),
     );

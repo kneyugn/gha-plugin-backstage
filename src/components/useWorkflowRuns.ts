@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Spotify AB
+ * Copyright 2020 The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,25 +14,25 @@
  * limitations under the License.
  */
 import { useState } from 'react';
-import { useAsyncRetry } from 'react-use';
+import useAsyncRetry from 'react-use/lib/useAsyncRetry';
 import { githubActionsApiRef } from '../api/GithubActionsApi';
-import { useApi, errorApiRef } from '@backstage/core';
+import { useApi, errorApiRef } from '@backstage/core-plugin-api';
 
 export type WorkflowRun = {
-  workflowName: string;
+  workflowName?: string;
   id: string;
-  message: string;
+  message?: string;
   url?: string;
   githubUrl?: string;
   source: {
-    branchName: string;
+    branchName?: string;
     commit: {
-      hash: string;
+      hash?: string;
       url?: string;
     };
   };
-  status: string;
-  conclusion: string;
+  status?: string;
+  conclusion?: string;
   onReRunClick: () => void;
 };
 
@@ -57,9 +57,12 @@ export function useWorkflowRuns({
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(initialPageSize);
 
-  const { loading, value: runs, retry, error } = useAsyncRetry<
-    WorkflowRun[]
-  >(async () => {
+  const {
+    loading,
+    value: runs,
+    retry,
+    error,
+  } = useAsyncRetry<WorkflowRun[]>(async () => {
     // GitHub API pagination count starts from 1
     const workflowRunsData = await api.listWorkflowRuns({
       hostname,
@@ -72,8 +75,8 @@ export function useWorkflowRuns({
     setTotal(workflowRunsData.total_count);
     // Transformation here
     return workflowRunsData.workflow_runs.map(run => ({
-      workflowName: run.name,
-      message: run?.head_commit?.message,
+      workflowName: run.name ?? undefined,
+      message: run.head_commit?.message,
       id: `${run.id}`,
       onReRunClick: async () => {
         try {
@@ -83,25 +86,27 @@ export function useWorkflowRuns({
             repo,
             runId: run.id,
           });
-        } catch (e: any) {
-          errorApi.post(e);
+        } catch (e) {
+          errorApi.post(
+            new Error(`Failed to rerun the workflow: ${e.message}`),
+          );
         }
       },
       source: {
-        branchName: run.head_branch,
+        branchName: run.head_branch ?? undefined,
         commit: {
-          hash: run?.head_commit?.id,
+          hash: run.head_commit?.id,
           url: run.head_repository?.branches_url?.replace(
             '{/branch}',
-            run.head_branch || '',
+            run.head_branch ?? '',
           ),
         },
       },
-      status: run.status,
-      conclusion: run.conclusion,
+      status: run.status ?? undefined,
+      conclusion: run.conclusion ?? undefined,
       url: run.url,
       githubUrl: run.html_url,
-    })) as any;
+    }));
   }, [page, pageSize, repo, owner]);
 
   return [

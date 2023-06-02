@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Spotify AB
+ * Copyright 2020 The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,10 @@
  * limitations under the License.
  */
 
-import { useAsync } from 'react-use';
 import { Entity } from '@backstage/catalog-model';
 
+/** @public */
 export const GITHUB_ACTIONS_ANNOTATION = 'github.com/project-slug';
 
-export const useProjectName = (entity: Entity) => {
-  const { value, loading, error } = useAsync(async () => {
-    return entity?.metadata.annotations?.[GITHUB_ACTIONS_ANNOTATION] ?? '';
-  });
-  return { value, loading, error };
-};
+export const getProjectNameFromEntity = (entity: Entity) =>
+  entity?.metadata.annotations?.[GITHUB_ACTIONS_ANNOTATION] ?? '';

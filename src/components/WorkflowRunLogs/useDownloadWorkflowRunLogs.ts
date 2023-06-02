@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Spotify AB
+ * Copyright 2020 The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import { useApi } from '@backstage/core';
-import { useAsync } from 'react-use';
+import useAsync from 'react-use/lib/useAsync';
 import { githubActionsApiRef } from '../../api';
+import { useApi } from '@backstage/core-plugin-api';
 
 export const useDownloadWorkflowRunLogs = ({
   hostname,
@@ -27,7 +27,7 @@ export const useDownloadWorkflowRunLogs = ({
   hostname?: string;
   owner: string;
   repo: string;
-  id: string;
+  id: number;
 }) => {
   const api = useApi(githubActionsApiRef);
   const details = useAsync(async () => {
@@ -36,7 +36,7 @@ export const useDownloadWorkflowRunLogs = ({
           hostname,
           owner,
           repo,
-          runId: parseInt(id, 10),
+          runId: id,
         })
       : Promise.reject('No repo/owner provided');
   }, [repo, owner, id]);

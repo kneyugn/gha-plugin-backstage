@@ -1,17 +1,14 @@
 import { Entity } from '@backstage/catalog-model';
-import { ApiProvider, ApiRegistry, ConfigApi, configApiRef, ConfigReader, errorApiRef } from '@backstage/core';
+import { ApiProvider, ApiRegistry, ConfigApi, configApiRef, ConfigReader, errorApiRef, OAuthApi } from '@backstage/core';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
 import { BrowserRouter, generatePath } from 'react-router-dom';
-import { githubActionsApiRef, GithubActionsClient } from './api';
-import { Router } from '@backstage/plugin-github-actions'
-import { ScmAuthApi } from '@backstage/integration-react';
+import { Router, GithubActionsClient, githubActionsApiRef } from '@backstage/plugin-github-actions'
 import { createContext } from 'react';
 import {
   createVersionedValueMap,
   createVersionedContext
 } from '@backstage/version-bridge';
 import {  Progress, ErrorPage } from '@backstage/core-components';
-
 
 function App() {
   const entity: Entity = {
@@ -44,13 +41,13 @@ function App() {
     error$: () => {}
   }
 
-  const scmAuth: ScmAuthApi = {
-    getCredentials: () => Promise.resolve({token: '', headers: {}})
+  const githubAuthApi: OAuthApi = {
+    getAccessToken: () => Promise.resolve('')
   }
 
-  const options: {configApi: ConfigApi, scmAuthApi: ScmAuthApi} = {
+  const options: {configApi: ConfigApi, githubAuthApi: OAuthApi} = {
     configApi: configApi,
-    scmAuthApi: scmAuth
+    githubAuthApi: githubAuthApi,
   }
 
   const RoutingContext = getOrCreateGlobalSingleton('routing-context', () =>

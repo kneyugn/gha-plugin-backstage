@@ -1,9 +1,8 @@
 import { Entity } from '@backstage/catalog-model';
-import { ApiProvider, ApiRegistry, ConfigApi, configApiRef, ConfigReader, errorApiRef, OAuthApi } from '@backstage/core';
+import { ApiProvider, ApiRegistry, ConfigApi, configApiRef, ConfigReader, errorApiRef } from '@backstage/core';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
 import { BrowserRouter, generatePath } from 'react-router-dom';
 import { githubActionsApiRef, GithubActionsClient } from './api';
-// import { Router } from './components/Router';
 import { Router } from '@backstage/plugin-github-actions'
 import { ScmAuthApi } from '@backstage/integration-react';
 import { createContext } from 'react';
@@ -51,7 +50,6 @@ function App() {
     configApi: configApi,
     scmAuthApi: scmAuth
   }
-
 
   const RoutingContext = getOrCreateGlobalSingleton('routing-context', () =>
     createContext<any>(undefined),

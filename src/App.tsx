@@ -8,7 +8,9 @@ import { ScmAuthApi } from '@backstage/integration-react';
 import { createContext } from 'react';
 import {
   createVersionedValueMap,
+  createVersionedContext
 } from '@backstage/version-bridge';
+import {  Progress, ErrorPage } from '@backstage/core-components';
 
 
 function App() {
@@ -58,13 +60,32 @@ function App() {
   const resolver = new Resolver()
   const versionedValue = createVersionedValueMap({ 1: resolver });
 
+  const DefaultNotFoundPage = () => (
+    <ErrorPage status="404" statusMessage="PAGE NOT FOUND" />
+  );
+
+  const AppContext = createVersionedContext('app-context');
+  const appContext = {
+    getComponents: () => (
+      { Progress: Progress,
+      NotFoundErrorPage: DefaultNotFoundPage,
+      BootErrorPage: DefaultNotFoundPage }),
+    getSystemIcon: (key: string) => {},
+    getSystemIcons: () => {},
+    getPlugins: () => {}
+  }
+  const appValue = createVersionedValueMap({ 1: appContext });
+
+
   return (
     <BrowserRouter>
       <ApiProvider apis={ApiRegistry.from([[githubActionsApiRef, new GithubActionsClient(options)], 
         [configApiRef, configApi], [errorApiRef, errorApi]])}>
         <EntityProvider entity={entity}>
           <RoutingContext.Provider value={versionedValue}>
-            <Router></Router>
+            <AppContext.Provider value={appValue}>
+              <Router></Router>
+            </AppContext.Provider>
           </RoutingContext.Provider>
         </EntityProvider>
       </ApiProvider>
@@ -94,8 +115,6 @@ export default App;
 // https://github.com/zloirock/core-js/issues/86#issuecomment-115759028
 
 class Resolver {
-  constructor() {}
-
   resolve(data) {
     return (rowData) => {
       return generatePath(data.path, rowData)

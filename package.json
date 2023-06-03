@@ -51,7 +51,7 @@
     "webpack-dev-server": "^3.11.0"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "BUILD_PATH='./dist' react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",

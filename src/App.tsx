@@ -9,6 +9,69 @@ import {
   createVersionedContext
 } from '@backstage/version-bridge';
 import {  Progress, ErrorPage } from '@backstage/core-components';
+import { createTheme, ThemeProvider } from '@material-ui/core';
+import { yellow } from '@material-ui/core/colors';
+
+const theme = createTheme({
+  palette: {
+    type: 'light',
+    background: {
+      default: '#F8F8F8',
+    },
+    status: {
+      ok: '#1DB954',
+      warning: '#FF9800',
+      error: '#E22134',
+      running: '#2E77D0',
+      pending: '#FFED51',
+      aborted: '#757575',
+    },
+    bursts: {
+      fontColor: '#FEFEFE',
+      slackChannelText: '#ddd',
+      backgroundColor: {
+        default: '#7C3699',
+      },
+    },
+    primary: {
+      main: '#2E77D0',
+    },
+    banner: {
+      info: '#2E77D0',
+      error: '#E22134',
+      text: '#FFFFFF',
+      link: '#000000',
+    },
+    border: '#E6E6E6',
+    textContrast: '#000000',
+    textVerySubtle: '#DDD',
+    textSubtle: '#6E6E6E',
+    highlight: '#FFFBCC',
+    errorBackground: '#FFEBEE',
+    warningBackground: '#F59B23',
+    infoBackground: '#ebf5ff',
+    errorText: '#CA001B',
+    infoText: '#004e8a',
+    warningText: '#000000',
+    linkHover: '#2196F3',
+    link: '#0A6EBE',
+    gold: yellow.A700,
+    navigation: {
+      background: '#171717',
+      indicator: '#9BF0E1',
+      color: '#b5b5b5',
+      selectedColor: '#FFF',
+    },
+    pinSidebarButton: {
+      icon: '#181818',
+      background: '#BDBDBD',
+    },
+    tabbar: {
+      indicator: '#9BF0E1',
+    },
+  },
+  defaultPageTheme: 'home'
+} as any)
 
 function App() {
   const entity: Entity = {
@@ -29,11 +92,9 @@ function App() {
   } as Entity
 
   const configApi: ConfigApi = new ConfigReader({
-    'integrations.github': [
-      {
-        host: 'github.com'
-      }
-    ],
+    integrations: {
+      github: []
+    }
   });
 
   const errorApi = {
@@ -73,20 +134,21 @@ function App() {
   }
   const appValue = createVersionedValueMap({ 1: appContext });
 
-
   return (
-    <BrowserRouter>
-      <ApiProvider apis={ApiRegistry.from([[githubActionsApiRef, new GithubActionsClient(options)], 
-        [configApiRef, configApi], [errorApiRef, errorApi]])}>
-        <EntityProvider entity={entity}>
-          <RoutingContext.Provider value={versionedValue}>
-            <AppContext.Provider value={appValue}>
-              <Router></Router>
-            </AppContext.Provider>
-          </RoutingContext.Provider>
-        </EntityProvider>
-      </ApiProvider>
-    </BrowserRouter>
+    <ThemeProvider theme={theme}>
+        <BrowserRouter>
+        <ApiProvider apis={ApiRegistry.from([[githubActionsApiRef, new GithubActionsClient(options)], 
+          [configApiRef, configApi], [errorApiRef, errorApi]])}>
+          <EntityProvider entity={entity}>
+            <RoutingContext.Provider value={versionedValue}>
+              <AppContext.Provider value={appValue}>
+                <Router></Router>
+              </AppContext.Provider>
+            </RoutingContext.Provider>
+          </EntityProvider>
+        </ApiProvider>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
 

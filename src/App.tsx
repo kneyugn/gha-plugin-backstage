@@ -11,6 +11,8 @@ import {
 import {  Progress, ErrorPage } from '@backstage/core-components';
 import { createTheme, ThemeProvider } from '@material-ui/core';
 import { yellow } from '@material-ui/core/colors';
+import ReactDOM from 'react-dom';
+import reportWebVitals from './reportWebVitals';
 
 const theme = createTheme({
   palette: {
@@ -73,7 +75,7 @@ const theme = createTheme({
   defaultPageTheme: 'home'
 } as any)
 
-function App() {
+export function App() {
   const entity: Entity = {
     apiVersion: "backstage.io/v1alpha1",
     kind: "Component",
@@ -208,3 +210,20 @@ function getGlobalObject() {
 const globalObject = getGlobalObject();
 
 const makeKey = (id: string) => `__@backstage/${id}__`;
+
+class Mfe4Element extends HTMLElement {
+  connectedCallback() {
+    ReactDOM.render(
+      <App />,
+      this
+    );
+  }
+}
+
+customElements.define("gha-react-element", Mfe4Element)
+
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();

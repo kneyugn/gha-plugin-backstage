@@ -7,7 +7,7 @@ module.exports = function override(config, env) {
         library: { type: "var", name: "gha" },
         filename: "remoteEntry.js",
         exposes: {
-            "./gha": "./src/index.tsx",
+            "./gha": "./src/App.tsx",
         },
         shared: {
             react: {

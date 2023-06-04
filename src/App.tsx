@@ -1,7 +1,7 @@
 import { Entity } from '@backstage/catalog-model';
 import { ApiProvider, ApiRegistry, ConfigApi, configApiRef, ConfigReader, errorApiRef, OAuthApi } from '@backstage/core';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
-import { BrowserRouter, generatePath } from 'react-router-dom';
+import { BrowserRouter, generatePath, Route, Routes } from 'react-router-dom';
 import { Router, GithubActionsClient, githubActionsApiRef } from '@backstage/plugin-github-actions'
 import { createContext } from 'react';
 import {
@@ -13,6 +13,7 @@ import { createTheme, ThemeProvider } from '@material-ui/core';
 import { yellow } from '@material-ui/core/colors';
 import ReactDOM from 'react-dom';
 import reportWebVitals from './reportWebVitals';
+import { EntityLayout } from '@backstage/plugin-catalog';
 
 const theme = createTheme({
   palette: {
@@ -144,7 +145,9 @@ export function App() {
           <EntityProvider entity={entity}>
             <RoutingContext.Provider value={versionedValue}>
               <AppContext.Provider value={appValue}>
-                <Router></Router>
+                <Routes>
+                  <Route path="/gha" element={<Router/>}></Route>
+                </Routes>
               </AppContext.Provider>
             </RoutingContext.Provider>
           </EntityProvider>

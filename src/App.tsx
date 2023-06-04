@@ -13,7 +13,6 @@ import { createTheme, ThemeProvider } from '@material-ui/core';
 import { yellow } from '@material-ui/core/colors';
 import ReactDOM from 'react-dom';
 import reportWebVitals from './reportWebVitals';
-import { EntityLayout } from '@backstage/plugin-catalog';
 
 const theme = createTheme({
   palette: {
@@ -137,6 +136,9 @@ export function App() {
   }
   const appValue = createVersionedValueMap({ 1: appContext });
 
+  /**
+   * Note: route must match the host's path so localhost:4200/gha must be 1:1 with localhost:3023/gha
+   */
   return (
     <ThemeProvider theme={theme}>
         <BrowserRouter>
@@ -146,7 +148,8 @@ export function App() {
             <RoutingContext.Provider value={versionedValue}>
               <AppContext.Provider value={appValue}>
                 <Routes>
-                  <Route path="/gha" element={<Router/>}></Route>
+                  <Route path="/gha" element={<Router/>}> 
+                  </Route>
                 </Routes>
               </AppContext.Provider>
             </RoutingContext.Provider>
@@ -223,6 +226,28 @@ class Mfe4Element extends HTMLElement {
   }
 }
 
+/**
+ * Critical: This creates a custom element with react logic.
+ * Then in Angular host application, the WebComponentWrapper will:
+ *  - 1. execute the script from remoteEntry to execute this customElements.define("gha-react-element", Mfe4Element)
+ *  - 2. then document.createElement will simply create the tag in <gha-react-element></gha-react-element>
+ * 
+ * more info on customElements: https://developer.mozilla.org/en-US/docs/Web/API/CustomElementRegistry/define
+ * 
+ * const routes: Routes = [
+    {
+          path: 'gha',
+          component: WebComponentWrapper,
+          data: {
+            type: 'script',
+            remoteEntry: 'http://localhost:3023/remoteEntry.js',
+            exposedModule: './gha',
+            remoteName: 'gha',
+            elementName: 'gha-react-element',
+          } as WebComponentWrapperOptions
+      },
+  ];
+ */
 customElements.define("gha-react-element", Mfe4Element)
 
 

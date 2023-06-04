@@ -17,7 +17,7 @@ module.exports = function override(config, env) {
         },
         shared: {
             react: {
-                eager: true,  
+                eager: true,
                 singleton: true,
                 requiredVersion: deps["react"],
             },

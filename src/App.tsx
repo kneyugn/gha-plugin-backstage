@@ -1,7 +1,7 @@
 import { Entity } from '@backstage/catalog-model';
 import { ApiProvider, ApiRegistry, ConfigApi, configApiRef, ConfigReader, errorApiRef, OAuthApi } from '@backstage/core';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
-import { BrowserRouter, generatePath, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, generatePath, Navigate, Route, Routes } from 'react-router-dom';
 import { Router, GithubActionsClient, githubActionsApiRef } from '@backstage/plugin-github-actions'
 import { createContext } from 'react';
 import {
@@ -83,7 +83,7 @@ export function App() {
       name: "the-scaffolder-ci-cd",
       description: "Component with GitHub actions enabled.",
       annotations: {
-        'github.com/project-slug': "kneyugn/the-scaffolder"
+        'github.com/project-slug': "angular/angular"
       }
     },
     spec: {
@@ -137,25 +137,28 @@ export function App() {
   const appValue = createVersionedValueMap({ 1: appContext });
 
   /**
-   * Note: route must match the host's path so localhost:4200/gha must be 1:1 with localhost:3023/gha
+   * Note:
+   * <Navigate to="/gha" will make "gha" as the default route. This is so localhost:4200/gha will load the mfe and then redirects it to its base bath
+   * <Route path="/gha/*" element={<Router />} /> , the "*" is needed in "/gha/*" because without it, when visiting a child route, the binding to "gha" is lost.
+   * 
    */
   return (
     <ThemeProvider theme={theme}>
-        <BrowserRouter>
-        <ApiProvider apis={ApiRegistry.from([[githubActionsApiRef, new GithubActionsClient(options)], 
-          [configApiRef, configApi], [errorApiRef, errorApi]])}>
-          <EntityProvider entity={entity}>
-            <RoutingContext.Provider value={versionedValue}>
-              <AppContext.Provider value={appValue}>
-                <Routes>
-                  <Route path="/gha" element={<Router/>}> 
-                  </Route>
-                </Routes>
-              </AppContext.Provider>
-            </RoutingContext.Provider>
-          </EntityProvider>
-        </ApiProvider>
-      </BrowserRouter>
+      <ApiProvider apis={ApiRegistry.from([[githubActionsApiRef, new GithubActionsClient(options)], 
+        [configApiRef, configApi], [errorApiRef, errorApi]])}>
+        <EntityProvider entity={entity}>
+          <RoutingContext.Provider value={versionedValue}>
+            <AppContext.Provider value={appValue}>
+                <BrowserRouter>
+                  <Routes>
+                    <Route path="/gha/*" element={<Router />} />
+                    <Route path="*" element={<Navigate to="/gha" />} />
+                  </Routes>
+              </BrowserRouter>
+            </AppContext.Provider>
+          </RoutingContext.Provider>
+        </EntityProvider>
+      </ApiProvider>
     </ThemeProvider>
   );
 }
@@ -184,7 +187,8 @@ export default App;
 class Resolver {
   resolve(data) {
     return (rowData) => {
-      return generatePath(data.path, rowData)
+      // this is so all links to details will prefix "/gha/"
+      return '/gha/' + generatePath(data.path, rowData)
     }
   }
 }

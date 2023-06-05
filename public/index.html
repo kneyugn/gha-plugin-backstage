@@ -1,1 +1,4 @@
+<!-- you do not need more than a <gha-react-element> tag in this file -->
+<!-- In the standalone running application on localhost:3023, the build will create an index.html page with this gha-react-element and a script with bundle script. The bundle will execute the customElements.define function. -->
+<!-- In the Angular host application, this is not needed. The Promise.all([]) function in remoteEntry.js is called and the customElements.define() is eventually called. The host application creates the gha-react-element tag after the customElement is defined. -->
 <gha-react-element></gha-react-element>

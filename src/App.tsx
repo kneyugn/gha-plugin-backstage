@@ -1,79 +1,162 @@
-import { Entity } from '@backstage/catalog-model';
-import { ApiProvider, ApiRegistry, ConfigApi, configApiRef, ConfigReader, errorApiRef, OAuthApi } from '@backstage/core';
-import { EntityProvider } from '@backstage/plugin-catalog-react';
-import { BrowserRouter, generatePath, Navigate, Route, Routes } from 'react-router-dom';
-import { Router, GithubActionsClient, githubActionsApiRef } from '@backstage/plugin-github-actions'
-import { createContext } from 'react';
+import { Entity } from "@backstage/catalog-model";
+import {
+  ApiProvider,
+  ApiRegistry,
+  ConfigApi,
+  configApiRef,
+  ConfigReader,
+  errorApiRef,
+  OAuthApi,
+} from "@backstage/core";
+import { EntityProvider } from "@backstage/plugin-catalog-react";
+import {
+  BrowserRouter,
+  generatePath,
+  Navigate,
+  Route,
+  Routes,
+} from "react-router-dom";
+import {
+  Router,
+  GithubActionsClient,
+  githubActionsApiRef,
+} from "@backstage/plugin-github-actions";
+import { createContext, useEffect, useState } from "react";
 import {
   createVersionedValueMap,
-  createVersionedContext
-} from '@backstage/version-bridge';
-import {  Progress, ErrorPage } from '@backstage/core-components';
-import { createTheme, ThemeProvider } from '@material-ui/core';
-import { yellow } from '@material-ui/core/colors';
-import ReactDOM from 'react-dom';
-import reportWebVitals from './reportWebVitals';
+  createVersionedContext,
+} from "@backstage/version-bridge";
+import { Progress, ErrorPage } from "@backstage/core-components";
+import {
+  Button,
+  Card,
+  CardActions,
+  CardContent,
+  createTheme,
+  ThemeProvider,
+  Typography,
+} from "@material-ui/core";
+import { yellow } from "@material-ui/core/colors";
+import ReactDOM from "react-dom";
+import reportWebVitals from "./reportWebVitals";
+import { Octokit } from "@octokit/rest";
+
+const token = localStorage.getItem("github_access_token");
+
+function Repos() {
+  const [repos, setRepos] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const octokit = new Octokit({
+        auth: token,
+      });
+
+      const response = await octokit.request("GET /users/kneyugn/repos", {
+        username: "kneyugn",
+        headers: {
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      });
+
+      console.log(response.data);
+      const newRepos = response.data
+        .filter((item) => item.private === false)
+        .map((item) => ({
+          full_name: item.full_name,
+          description: item.description,
+        }));
+      setRepos(newRepos);
+    };
+
+    fetchData().catch(console.error);
+  }, []);
+
+  const repoContainerStyle = {
+    display: "grid",
+    "grid-template-columns": "repeat(5, 1fr)",
+    "grid-gap": "16px",
+  };
+
+  return (
+    <div style={repoContainerStyle} className="repos-container">
+      {repos.map((repo: { full_name: string; description: string }, idx) => (
+        <Card key={idx}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              {repo.full_name}
+            </Typography>
+            <Typography variant="body2">{repo.description}</Typography>
+          </CardContent>
+          <CardActions>
+            <Button size="small">View Actions</Button>
+          </CardActions>
+        </Card>
+      ))}
+    </div>
+  );
+}
 
 const theme = createTheme({
   palette: {
-    type: 'light',
+    type: "light",
     background: {
-      default: '#F8F8F8',
+      default: "#F8F8F8",
     },
     status: {
-      ok: '#1DB954',
-      warning: '#FF9800',
-      error: '#E22134',
-      running: '#2E77D0',
-      pending: '#FFED51',
-      aborted: '#757575',
+      ok: "#1DB954",
+      warning: "#FF9800",
+      error: "#E22134",
+      running: "#2E77D0",
+      pending: "#FFED51",
+      aborted: "#757575",
     },
     bursts: {
-      fontColor: '#FEFEFE',
-      slackChannelText: '#ddd',
+      fontColor: "#FEFEFE",
+      slackChannelText: "#ddd",
       backgroundColor: {
-        default: '#7C3699',
+        default: "#7C3699",
       },
     },
     primary: {
-      main: '#2E77D0',
+      main: "#2E77D0",
     },
     banner: {
-      info: '#2E77D0',
-      error: '#E22134',
-      text: '#FFFFFF',
-      link: '#000000',
+      info: "#2E77D0",
+      error: "#E22134",
+      text: "#FFFFFF",
+      link: "#000000",
     },
-    border: '#E6E6E6',
-    textContrast: '#000000',
-    textVerySubtle: '#DDD',
-    textSubtle: '#6E6E6E',
-    highlight: '#FFFBCC',
-    errorBackground: '#FFEBEE',
-    warningBackground: '#F59B23',
-    infoBackground: '#ebf5ff',
-    errorText: '#CA001B',
-    infoText: '#004e8a',
-    warningText: '#000000',
-    linkHover: '#2196F3',
-    link: '#0A6EBE',
+    border: "#E6E6E6",
+    textContrast: "#000000",
+    textVerySubtle: "#DDD",
+    textSubtle: "#6E6E6E",
+    highlight: "#FFFBCC",
+    errorBackground: "#FFEBEE",
+    warningBackground: "#F59B23",
+    infoBackground: "#ebf5ff",
+    errorText: "#CA001B",
+    infoText: "#004e8a",
+    warningText: "#000000",
+    linkHover: "#2196F3",
+    link: "#0A6EBE",
     gold: yellow.A700,
     navigation: {
-      background: '#171717',
-      indicator: '#9BF0E1',
-      color: '#b5b5b5',
-      selectedColor: '#FFF',
+      background: "#171717",
+      indicator: "#9BF0E1",
+      color: "#b5b5b5",
+      selectedColor: "#FFF",
     },
     pinSidebarButton: {
-      icon: '#181818',
-      background: '#BDBDBD',
+      icon: "#181818",
+      background: "#BDBDBD",
     },
     tabbar: {
-      indicator: '#9BF0E1',
+      indicator: "#9BF0E1",
     },
   },
-  defaultPageTheme: 'home'
-} as any)
+  defaultPageTheme: "home",
+} as any);
 
 export function App() {
   const entity: Entity = {
@@ -83,77 +166,84 @@ export function App() {
       name: "the-scaffolder-ci-cd",
       description: "Component with GitHub actions enabled.",
       annotations: {
-        'github.com/project-slug': "angular/angular"
-      }
+        "github.com/project-slug": "angular/angular",
+      },
     },
     spec: {
       type: "service",
       lifecycle: "production",
-      owner: "engineering-team"
-    }
-  } as Entity
+      owner: "engineering-team",
+    },
+  } as Entity;
 
   const configApi: ConfigApi = new ConfigReader({
     integrations: {
-      github: []
-    }
+      github: [],
+    },
   });
 
   const errorApi = {
-    post: () => console.log('post'),
-    error$: () => {}
-  }
+    post: () => console.log("post"),
+    error$: () => {},
+  };
 
   const githubAuthApi: OAuthApi = {
-    getAccessToken: () => Promise.resolve('')
-  }
+    getAccessToken: () => Promise.resolve(token ?? ""),
+  };
 
-  const options: {configApi: ConfigApi, githubAuthApi: OAuthApi} = {
+  const options: { configApi: ConfigApi; githubAuthApi: OAuthApi } = {
     configApi: configApi,
     githubAuthApi: githubAuthApi,
-  }
+  };
 
-  const RoutingContext = getOrCreateGlobalSingleton('routing-context', () =>
-    createContext<any>(undefined),
+  const RoutingContext = getOrCreateGlobalSingleton("routing-context", () =>
+    createContext<any>(undefined)
   );
 
-  const resolver = new Resolver()
+  const resolver = new Resolver();
   const versionedValue = createVersionedValueMap({ 1: resolver });
 
   const DefaultNotFoundPage = () => (
     <ErrorPage status="404" statusMessage="PAGE NOT FOUND" />
   );
 
-  const AppContext = createVersionedContext('app-context');
+  const AppContext = createVersionedContext("app-context");
   const appContext = {
-    getComponents: () => (
-      { Progress: Progress,
+    getComponents: () => ({
+      Progress: Progress,
       NotFoundErrorPage: DefaultNotFoundPage,
-      BootErrorPage: DefaultNotFoundPage }),
+      BootErrorPage: DefaultNotFoundPage,
+    }),
     getSystemIcon: (key: string) => {},
     getSystemIcons: () => {},
-    getPlugins: () => {}
-  }
+    getPlugins: () => {},
+  };
   const appValue = createVersionedValueMap({ 1: appContext });
 
   /**
    * Note:
    * <Navigate to="/gha" will make "gha" as the default route. This is so localhost:4200/gha will load the mfe and then redirects it to its base bath
    * <Route path="/gha/*" element={<Router />} /> , the "*" is needed in "/gha/*" because without it, when visiting a child route, the binding to "gha" is lost.
-   * 
+   *
    */
   return (
     <ThemeProvider theme={theme}>
-      <ApiProvider apis={ApiRegistry.from([[githubActionsApiRef, new GithubActionsClient(options)], 
-        [configApiRef, configApi], [errorApiRef, errorApi]])}>
+      <ApiProvider
+        apis={ApiRegistry.from([
+          [githubActionsApiRef, new GithubActionsClient(options)],
+          [configApiRef, configApi],
+          [errorApiRef, errorApi],
+        ])}
+      >
         <EntityProvider entity={entity}>
           <RoutingContext.Provider value={versionedValue}>
             <AppContext.Provider value={appValue}>
-                <BrowserRouter>
-                  <Routes>
-                    <Route path="/gha/*" element={<Router />} />
-                    <Route path="*" element={<Navigate to="/gha" />} />
-                  </Routes>
+              <Repos></Repos>
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/gha/*" element={<Router />} />
+                  <Route path="*" element={<Navigate to="/gha" />} />
+                </Routes>
               </BrowserRouter>
             </AppContext.Provider>
           </RoutingContext.Provider>
@@ -164,7 +254,6 @@ export function App() {
 }
 
 export default App;
-
 
 /*
  * Copyright 2021 Spotify AB
@@ -188,15 +277,12 @@ class Resolver {
   resolve(data) {
     return (rowData) => {
       // this is so all links to details will prefix "/gha/"
-      return '/gha/' + generatePath(data.path, rowData)
-    }
+      return "/gha/" + generatePath(data.path, rowData);
+    };
   }
 }
 
-function getOrCreateGlobalSingleton<T>(
-  id: string,
-  supplier: () => T,
-): T {
+function getOrCreateGlobalSingleton<T>(id: string, supplier: () => T): T {
   const key = makeKey(id);
 
   let value = globalObject[key];
@@ -210,11 +296,11 @@ function getOrCreateGlobalSingleton<T>(
 }
 
 function getGlobalObject() {
-  if (typeof window !== 'undefined' && window.Math === Math) {
+  if (typeof window !== "undefined" && window.Math === Math) {
     return window;
   }
   // eslint-disable-next-line no-new-func
-  return Function('return this')();
+  return Function("return this")();
 }
 
 const globalObject = getGlobalObject();
@@ -223,10 +309,7 @@ const makeKey = (id: string) => `__@backstage/${id}__`;
 
 class Mfe4Element extends HTMLElement {
   connectedCallback() {
-    ReactDOM.render(
-      <App />,
-      this
-    );
+    ReactDOM.render(<App />, this);
   }
 }
 
@@ -252,8 +335,7 @@ class Mfe4Element extends HTMLElement {
       },
   ];
  */
-customElements.define("gha-react-element", Mfe4Element)
-
+customElements.define("gha-react-element", Mfe4Element);
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))

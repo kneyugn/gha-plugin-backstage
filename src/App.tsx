@@ -34,6 +34,8 @@ import {
 import { Octokit } from "@octokit/rest";
 
 const token = localStorage.getItem("github_access_token");
+const org = "";
+const teams = ["", ""];
 
 export function App() {
   const [entity, setEntity] = useState(null);
@@ -60,6 +62,9 @@ export function App() {
 
   function handleRepoSelected(_, newValue) {
     const [owner, repoName] = newValue?.split("/") || [null, null];
+    if (!owner || !repoName) {
+      return;
+    }
     fetchIndividualRepo(owner, repoName)
       .then((data) => {
         const repoResponse = data.data;
@@ -84,6 +89,7 @@ export function App() {
         updateRepoSelected(entityCreated);
       })
       .catch((err) => {
+        console.error(err);
         setStatus({
           severity: "error",
           message:
@@ -94,32 +100,37 @@ export function App() {
   }
 
   useEffect(() => {
-    const fetchData = async () => {
-      setStatus({ severity: "", message: "" });
-      const response = await octokit.request("GET /users/kneyugn/repos", {
-        username: "kneyugn",
+    setStatus({ severity: "", message: "" });
+    const fetchData = async (team) => {
+      return octokit.request(`GET /orgs/${org}/teams/${team}/repos`, {
+        org: "UltimateSoftware",
+        team_slug: `${team}`,
         headers: {
           "X-GitHub-Api-Version": "2022-11-28",
         },
       });
-      const newRepos = response.data
-        .filter((item) => item.private === false)
-        .map((item) => ({
-          full_name: item.full_name,
-          description: item.description,
-        }));
-      setRepos(newRepos);
-      handleRepoSelected(null, newRepos[0].full_name);
     };
 
-    fetchData().catch((err) => {
-      setStatus({
-        severity: "error",
-        message:
-          err?.response?.data?.message ||
-          "We could not fetch the list of repos.",
+    const repoFetches = teams.map((eachTeam) => fetchData(eachTeam));
+
+    Promise.all(repoFetches)
+      .then((response) => {
+        const repoDetails = response.map((item) => item.data);
+        return repoDetails.reduce((accum, item) => [...accum, ...item], []);
+      })
+      .then((reposAcrossTeams) => {
+        setRepos(reposAcrossTeams);
+        handleRepoSelected(null, reposAcrossTeams[0].full_name);
+      })
+      .catch((err) => {
+        console.error(err);
+        setStatus({
+          severity: "error",
+          message:
+            err?.response?.data?.message ||
+            "We could not fetch the list of repos.",
+        });
       });
-    });
   }, []);
 
   function updateRepoSelected(newEntity) {

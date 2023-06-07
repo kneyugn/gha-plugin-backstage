@@ -14,7 +14,7 @@ import {
   GithubActionsClient,
   githubActionsApiRef,
 } from "@backstage/plugin-github-actions";
-import { createContext, useState } from "react";
+import { createContext, useEffect, useState } from "react";
 import {
   createVersionedValueMap,
   createVersionedContext,
@@ -25,17 +25,106 @@ import ReactDOM from "react-dom";
 import reportWebVitals from "./reportWebVitals";
 import { ReposAutocomplete } from "./components";
 import { getOrCreateGlobalSingleton, Resolver, theme } from "./resources";
+import { Alert, Color } from "@material-ui/lab";
+import {
+  ANNOTATION_LOCATION,
+  ANNOTATION_ORIGIN_LOCATION,
+  Entity,
+} from "@backstage/catalog-model";
+import { Octokit } from "@octokit/rest";
 
 const token = localStorage.getItem("github_access_token");
 
 export function App() {
   const [entity, setEntity] = useState(null);
+  const [status, setStatus] = useState({ severity: "", message: "" });
+  const [repos, setRepos] = useState([]);
+
+  const githubApiBaseUrl = "https://api.github.com";
+
+  const octokit = new Octokit({
+    auth: token,
+    baseUrl: githubApiBaseUrl,
+  });
+
+  const fetchIndividualRepo = async (owner, repoName) => {
+    setStatus({ severity: "", message: "" });
+    return await octokit.request(`GET /repos/${owner}/${repoName}`, {
+      owner: owner,
+      repo: repoName,
+      headers: {
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+  };
+
+  function handleRepoSelected(_, newValue) {
+    const [owner, repoName] = newValue?.split("/") || [null, null];
+    fetchIndividualRepo(owner, repoName)
+      .then((data) => {
+        const repoResponse = data.data;
+        const entityCreated: Entity = {
+          apiVersion: "backstage.io/v1alpha1",
+          kind: "Component",
+          metadata: {
+            name: newValue,
+            description: "Component with GitHub actions enabled.",
+            annotations: {
+              "github.com/project-slug": newValue,
+              [ANNOTATION_ORIGIN_LOCATION]: `url:${repoResponse["git_url"]}`,
+              [ANNOTATION_LOCATION]: `url:${repoResponse["git_url"]}`,
+            },
+          },
+          spec: {
+            type: "service",
+            lifecycle: "production",
+            owner: "engineering-team",
+          },
+        } as Entity;
+        updateRepoSelected(entityCreated);
+      })
+      .catch((err) => {
+        setStatus({
+          severity: "error",
+          message:
+            err?.response?.data?.message ||
+            "We could not retrieve the repo selected.",
+        });
+      });
+  }
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setStatus({ severity: "", message: "" });
+      const response = await octokit.request("GET /users/kneyugn/repos", {
+        username: "kneyugn",
+        headers: {
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      });
+      const newRepos = response.data
+        .filter((item) => item.private === false)
+        .map((item) => ({
+          full_name: item.full_name,
+          description: item.description,
+        }));
+      setRepos(newRepos);
+      handleRepoSelected(null, newRepos[0].full_name);
+    };
+
+    fetchData().catch((err) => {
+      setStatus({
+        severity: "error",
+        message:
+          err?.response?.data?.message ||
+          "We could not fetch the list of repos.",
+      });
+    });
+  }, []);
 
   function updateRepoSelected(newEntity) {
     setEntity(newEntity);
   }
-
-  const githubApiBaseUrl = "https://api.github.com";
 
   const configApi: ConfigApi = new ConfigReader({
     integrations: {
@@ -49,8 +138,18 @@ export function App() {
   });
 
   const errorApi = {
-    post: () => console.log("post"),
-    error$: () => {},
+    post: (post: {
+      name: any;
+      status: number;
+      response: any;
+      request: any;
+    }) => {
+      if (post.status !== 200) {
+        setStatus({ severity: "error", message: post.response.data });
+      } else {
+        setStatus({ severity: "success", message: post.response.data });
+      }
+    },
   };
 
   const githubAuthApi: OAuthApi = {
@@ -92,53 +191,43 @@ export function App() {
    * <Route path="/gha/*" element={<Router />} /> , the "*" is needed in "/gha/*" because without it, when visiting a child route, the binding to "gha" is lost.
    *
    */
-  if (entity) {
-    return (
-      <ThemeProvider theme={theme}>
-        <ApiProvider
-          apis={ApiRegistry.from([
-            [githubActionsApiRef, new GithubActionsClient(options)],
-            [configApiRef, configApi],
-            [errorApiRef, errorApi],
-          ])}
-        >
-          <EntityProvider entity={entity}>
-            <RoutingContext.Provider value={versionedValue}>
-              <AppContext.Provider value={appValue}>
-                <ReposAutocomplete
-                  updateRepoSelected={updateRepoSelected}
-                  token={token}
-                  githubApiBaseUrl={githubApiBaseUrl}
-                ></ReposAutocomplete>
-                <BrowserRouter>
-                  <Routes>
-                    <Route path="/gha/*" element={<Router />} />
-                    <Route path="*" element={<Navigate to="/gha" />} />
-                  </Routes>
-                </BrowserRouter>
-              </AppContext.Provider>
-            </RoutingContext.Provider>
-          </EntityProvider>
-        </ApiProvider>
-      </ThemeProvider>
-    );
-  } else {
-    return (
-      <>
-        <ReposAutocomplete
-          updateRepoSelected={updateRepoSelected}
-          token={token}
-          githubApiBaseUrl={githubApiBaseUrl}
-        ></ReposAutocomplete>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/gha/*" />
-            <Route path="*" element={<Navigate to="/gha" />} />
-          </Routes>
-        </BrowserRouter>
-      </>
-    );
-  }
+  return (
+    <>
+      {status.severity.length > 0 && (
+        <Alert severity={status.severity as Color}>{status.message}</Alert>
+      )}
+      <ReposAutocomplete
+        handleRepoSelected={handleRepoSelected}
+        token={token}
+        githubApiBaseUrl={githubApiBaseUrl}
+        repos={repos}
+      ></ReposAutocomplete>
+      {entity && (
+        <ThemeProvider theme={theme}>
+          <ApiProvider
+            apis={ApiRegistry.from([
+              [githubActionsApiRef, new GithubActionsClient(options)],
+              [configApiRef, configApi],
+              [errorApiRef, errorApi],
+            ])}
+          >
+            <EntityProvider entity={entity}>
+              <RoutingContext.Provider value={versionedValue}>
+                <AppContext.Provider value={appValue}>
+                  <BrowserRouter>
+                    <Routes>
+                      <Route path="/gha/*" element={<Router />} />
+                      <Route path="*" element={<Navigate to="/gha" />} />
+                    </Routes>
+                  </BrowserRouter>
+                </AppContext.Provider>
+              </RoutingContext.Provider>
+            </EntityProvider>
+          </ApiProvider>
+        </ThemeProvider>
+      )}
+    </>
+  );
 }
 
 export default App;

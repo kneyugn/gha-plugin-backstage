@@ -1,4 +1,3 @@
-import { Entity } from "@backstage/catalog-model";
 import {
   ApiProvider,
   ApiRegistry,
@@ -9,19 +8,13 @@ import {
   OAuthApi,
 } from "@backstage/core";
 import { EntityProvider } from "@backstage/plugin-catalog-react";
-import {
-  BrowserRouter,
-  generatePath,
-  Navigate,
-  Route,
-  Routes,
-} from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import {
   Router,
   GithubActionsClient,
   githubActionsApiRef,
 } from "@backstage/plugin-github-actions";
-import { createContext } from "react";
+import { createContext, useState } from "react";
 import {
   createVersionedValueMap,
   createVersionedContext,
@@ -31,31 +24,27 @@ import { ThemeProvider } from "@material-ui/core";
 import ReactDOM from "react-dom";
 import reportWebVitals from "./reportWebVitals";
 import { ReposAutocomplete } from "./components";
-import { theme } from "./resources";
+import { getOrCreateGlobalSingleton, Resolver, theme } from "./resources";
 
 const token = localStorage.getItem("github_access_token");
 
 export function App() {
-  const entity: Entity = {
-    apiVersion: "backstage.io/v1alpha1",
-    kind: "Component",
-    metadata: {
-      name: "the-scaffolder-ci-cd",
-      description: "Component with GitHub actions enabled.",
-      annotations: {
-        "github.com/project-slug": "angular/angular",
-      },
-    },
-    spec: {
-      type: "service",
-      lifecycle: "production",
-      owner: "engineering-team",
-    },
-  } as Entity;
+  const [entity, setEntity] = useState(null);
+
+  function updateRepoSelected(newEntity) {
+    setEntity(newEntity);
+  }
+
+  const githubApiBaseUrl = "https://api.github.com";
 
   const configApi: ConfigApi = new ConfigReader({
     integrations: {
-      github: [],
+      github: [
+        {
+          host: "github.com",
+          apiBaseUrl: githubApiBaseUrl,
+        },
+      ],
     },
   });
 
@@ -103,31 +92,53 @@ export function App() {
    * <Route path="/gha/*" element={<Router />} /> , the "*" is needed in "/gha/*" because without it, when visiting a child route, the binding to "gha" is lost.
    *
    */
-  return (
-    <ThemeProvider theme={theme}>
-      <ApiProvider
-        apis={ApiRegistry.from([
-          [githubActionsApiRef, new GithubActionsClient(options)],
-          [configApiRef, configApi],
-          [errorApiRef, errorApi],
-        ])}
-      >
-        <EntityProvider entity={entity}>
-          <RoutingContext.Provider value={versionedValue}>
-            <AppContext.Provider value={appValue}>
-              <ReposAutocomplete token={token}></ReposAutocomplete>
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/gha/*" element={<Router />} />
-                  <Route path="*" element={<Navigate to="/gha" />} />
-                </Routes>
-              </BrowserRouter>
-            </AppContext.Provider>
-          </RoutingContext.Provider>
-        </EntityProvider>
-      </ApiProvider>
-    </ThemeProvider>
-  );
+  if (entity) {
+    return (
+      <ThemeProvider theme={theme}>
+        <ApiProvider
+          apis={ApiRegistry.from([
+            [githubActionsApiRef, new GithubActionsClient(options)],
+            [configApiRef, configApi],
+            [errorApiRef, errorApi],
+          ])}
+        >
+          <EntityProvider entity={entity}>
+            <RoutingContext.Provider value={versionedValue}>
+              <AppContext.Provider value={appValue}>
+                <ReposAutocomplete
+                  updateRepoSelected={updateRepoSelected}
+                  token={token}
+                  githubApiBaseUrl={githubApiBaseUrl}
+                ></ReposAutocomplete>
+                <BrowserRouter>
+                  <Routes>
+                    <Route path="/gha/*" element={<Router />} />
+                    <Route path="*" element={<Navigate to="/gha" />} />
+                  </Routes>
+                </BrowserRouter>
+              </AppContext.Provider>
+            </RoutingContext.Provider>
+          </EntityProvider>
+        </ApiProvider>
+      </ThemeProvider>
+    );
+  } else {
+    return (
+      <>
+        <ReposAutocomplete
+          updateRepoSelected={updateRepoSelected}
+          token={token}
+          githubApiBaseUrl={githubApiBaseUrl}
+        ></ReposAutocomplete>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/gha/*" />
+            <Route path="*" element={<Navigate to="/gha" />} />
+          </Routes>
+        </BrowserRouter>
+      </>
+    );
+  }
 }
 
 export default App;
@@ -149,46 +160,6 @@ export default App;
  */
 
 // https://github.com/zloirock/core-js/issues/86#issuecomment-115759028
-
-class Resolver {
-  resolve(data) {
-    return (rowData) => {
-      // this is so all links to details will prefix "/gha/"
-      return "/gha/" + generatePath(data.path, rowData);
-    };
-  }
-}
-
-function getOrCreateGlobalSingleton<T>(id: string, supplier: () => T): T {
-  const key = makeKey(id);
-
-  let value = globalObject[key];
-  if (value) {
-    return value;
-  }
-
-  value = supplier();
-  globalObject[key] = value;
-  return value;
-}
-
-function getGlobalObject() {
-  if (typeof window !== "undefined" && window.Math === Math) {
-    return window;
-  }
-  // eslint-disable-next-line no-new-func
-  return Function("return this")();
-}
-
-const globalObject = getGlobalObject();
-
-const makeKey = (id: string) => `__@backstage/${id}__`;
-
-class Mfe4Element extends HTMLElement {
-  connectedCallback() {
-    ReactDOM.render(<App />, this);
-  }
-}
 
 /**
  * Critical: This creates a custom element with react logic.
@@ -212,6 +183,12 @@ class Mfe4Element extends HTMLElement {
       },
   ];
  */
+class Mfe4Element extends HTMLElement {
+  connectedCallback() {
+    ReactDOM.render(<App />, this);
+  }
+}
+
 customElements.define("gha-react-element", Mfe4Element);
 
 // If you want to start measuring performance in your app, pass a function
